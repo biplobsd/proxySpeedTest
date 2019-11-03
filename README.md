@@ -1,8 +1,5 @@
 ![preview](https://raw.githubusercontent.com/biplobsd/proxySpeedTest/master/src/preview.gif)
 
-# proxySpeedTest
-Batch proxy downloading speed test.
-
 ## Install
 `sudo apt update && sudo apt install python3`
 <br />
