@@ -30,9 +30,9 @@ def speedTest(ip):
 	proxy_ip = ip.strip()
 	def downloadChunk(idx, irange):
 		try:
-			if protocol in ('http'):
+			if protocol is 'http':
 				proxy_handler = urllib.request.ProxyHandler({'http': proxy_ip,})
-			if protocol in ('https'):
+			if protocol is 'https':
 				proxy_handler = urllib.request.ProxyHandler({'https': proxy_ip,})
 			elif protocol is 'sock4':
 				ip,port = proxy_ip.split(':')
