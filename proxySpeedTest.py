@@ -93,7 +93,7 @@ def clear():
 
 def whichProtocol(question, default="http"):
 	valid = {"1": 'http', "2": 'https', "3": 'sock4',
- 		"4": 'sock5'}
+ 		"4": 'sock5', 'http': 'http'}
 	if default is None:
 		prompt = "\n\n1. http\n2. https\n3. sock4\n4. sock5 "
 	elif default is 'http':
