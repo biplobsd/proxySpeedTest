@@ -51,14 +51,14 @@ def speedTest(ip):
 	print(f"\n\n\nProxy: {proxy_ip} | Downloading ...")
 	def downloadChunk(idx,null):
 		try:
-			if protocol is 'http':
+			if protocol == 'http':
 				proxy_handler = urllib.request.ProxyHandler({'http': proxy_ip,})
-			if protocol is 'https':
+			if protocol == 'https':
 				proxy_handler = urllib.request.ProxyHandler({'https': proxy_ip,})
-			elif protocol is 'sock4':
+			elif protocol == 'sock4':
 				ip,port = proxy_ip.split(':')
 				proxy_handler = sockshandler.SocksiPyHandler(socks.SOCKS4, ip, int(port))
-			elif protocol is 'sock5':
+			elif protocol == 'sock5':
 				ip,port = proxy_ip.split(':')
 				proxy_handler = sockshandler.SocksiPyHandler(socks.SOCKS5, ip, int(port))
 
