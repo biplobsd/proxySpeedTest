@@ -9,8 +9,8 @@ Batch proxy downloading speed test.
 `git clone https://github.com/biplobsd/proxySpeedTest.git && cd proxySpeedTest`<br />
 `python3 proxySpeedTest.py`<br />
 
-## Setup 
-Your http proxy server (ip:port) list save in the proxys.txt
+## Setup
+Your proxy server (ip:port) list save in the proxys.txt
 By this sequence:
 <br />
 `ip:port` <br />
