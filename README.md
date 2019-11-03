@@ -1,3 +1,5 @@
+![preview](https://raw.githubusercontent.com/biplobsd/proxySpeedTest/master/src/preview.gif)
+
 # proxySpeedTest
 Batch proxy downloading speed test.
 
