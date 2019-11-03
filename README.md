@@ -3,7 +3,7 @@
 ## Install
 `sudo apt update && sudo apt install python3`
 <br />
-`pip3 install tqmd`
+`pip3 install -r requirements.txt`
 <br />
 `git clone https://github.com/biplobsd/proxySpeedTest.git && cd proxySpeedTest`<br />
 `python3 proxySpeedTest.py`<br />
