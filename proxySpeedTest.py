@@ -1,5 +1,5 @@
 #Contact me http://t.me/biplob_sd
-import sys, threading, socket, os
+import sys, threading, socket, os, time
 from datetime import datetime
 from collections import OrderedDict
 from urllib import error
@@ -36,7 +36,7 @@ def sec_to_mins(seconds):
 
 
 def speedTest(ip):
-	#mirror = "https://drive.google.com/uc?id=0Bzkrq-7orwGScTAxNkFDaTM0Rkk&authuser=0&export=download"
+	#mirror = "http://drive.google.com/uc?id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&authuser=0&export=download"
 	mirror = 'http://speedtest.tele2.net/1MB.zip'
 	global protocol
 	socket.setdefaulttimeout(15)
@@ -64,16 +64,16 @@ def speedTest(ip):
 
 			opener = urllib.request.build_opener(proxy_handler)
 			urllib.request.install_opener(opener)
-			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread no: {idx}') as t:
+			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread {idx}') as t:
 						urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=t.update_to,data=None)
 		except error.URLError:
-			 return print(f"\nThread no: {idx}. Invalid ip or timeout for {proxy_ip}")
+			 return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
 		except ConnectionResetError:
-			return print(f"\nThread no: {idx}. Could not connect to {proxy_ip}")
+			return print(f"\nThread {idx}. Could not connect to {proxy_ip}")
 		except IndexError:
-			return print(f'\nThread no: {idx}. You must provide a testing IP:PORT proxy in the cmd line')
+			return print(f'\nThread {idx}. You must provide a testing IP:PORT proxy in the cmd line')
 		except socket.timeout:
-			return print(f"\nThread no: {idx}. Invalid ip or timeout for {proxy_ip}")
+			return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
 		except KeyboardInterrupt:
 			print("\nThread no: {idx}. Exited by User.")
 
@@ -137,6 +137,7 @@ def whichProtocol(question, default="http"):
 
 unsort = []
 sort = []
+filelogs = ""
 proxyslist = []
 banner = """
                              _____                     _ _______        _
@@ -156,6 +157,21 @@ for line in handle:
 		proxyslist.append(line)
 handle.close()
 
+def saveOutput(data):
+	global protocol
+	global filelogs
+	if len(data) == 1:
+		try:
+			os.mkdir('outputs')
+		except FileExistsError:
+			pass
+		filelogs = f"outputs/{time.strftime('%Y%m%d_%H_%M_%S')}.txt"
+	with open(filelogs, 'w+') as w:
+		w.write(f"{time.strftime('%X %x %Z')} | Mode {protocol} \n")
+		for line in data:
+			w.write(line['ip']+'\t'+str(line['speed'])+' KB/s\n')
+	w.close()
+
 if not len(proxyslist) == 0:
 	print(banner)
 	protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
@@ -170,7 +186,8 @@ if not len(proxyslist) == 0:
 			sort = sorted(
 			    unsort,
 			    key=lambda x: x['speed'], reverse=True)
-		print("\nSort as Speed: (Top 10)")
+		saveOutput(sort)
+		print(f"\nSort as Speed: (Top 10) | Mode : {protocol}")
 		count = 0
 		for p in sort:
 			count += 1
