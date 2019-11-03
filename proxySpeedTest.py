@@ -1,34 +1,55 @@
-#!/usr/bin/env python
-import sys, threading, time, math, socket, os, subprocess
+#Contact me http://t.me/biplob_sd
+import sys, threading, socket, os
+from datetime import datetime
 from collections import OrderedDict
-from urllib import error, request
+from urllib import error
 import urllib.request
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import socks
 import sockshandler
 
-def buildRange(value, numsplits):
-    lst = []
-    for i in range(numsplits):
-        if i == 0:
-            lst.append('%s-%s' % (i, int(round(1 + i * value/(numsplits*1.0) + value/(numsplits*1.0)-1, 0))))
-        else:
-            lst.append('%s-%s' % (int(round(1 + i * value/(numsplits*1.0),0)), int(round(1 + i * value/(numsplits*1.0) + value/(numsplits*1.0)-1, 0))))
-    return lst
+
+def my_hook(t):
+    last_b = [0]
+
+    def update_to(b=1, bsize=1, tsize=None):
+        if tsize not in (None, -1):
+            t.total = tsize
+        t.update((b - last_b[0]) * bsize)
+        last_b[0] = b
+
+    return update_to
+
+
+class TqdmUpTo(tqdm):
+
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)
+
+def sec_to_mins(seconds):
+	a=str(round((seconds%3600)//60))
+	b=str(round((seconds%3600)%60))
+	d="{} m {} s".format(a, b)
+	return d
 
 
 def speedTest(ip):
 	#mirror = "https://drive.google.com/uc?id=0Bzkrq-7orwGScTAxNkFDaTM0Rkk&authuser=0&export=download"
 	mirror = 'http://speedtest.tele2.net/1MB.zip'
 	global protocol
-	socket.setdefaulttimeout(30)
+	socket.setdefaulttimeout(15)
 	filename = '1MB.zip'
-	start = time.time()
-	sizeInBytes = '1048576'
-	dataDict = {}
-	ranges = buildRange(int(sizeInBytes), 3)
+
+	for i in range(3):
+		if os.path.exists(f'{filename}{i}'):
+			os.remove(f'{filename}{i}')
+
+	timeStart = datetime.now()
 	proxy_ip = ip.strip()
-	def downloadChunk(idx, irange):
+	print(f"\n\n\nProxy: {proxy_ip} | Downloading ...")
+	def downloadChunk(idx,null):
 		try:
 			if protocol is 'http':
 				proxy_handler = urllib.request.ProxyHandler({'http': proxy_ip,})
@@ -43,31 +64,25 @@ def speedTest(ip):
 
 			opener = urllib.request.build_opener(proxy_handler)
 			urllib.request.install_opener(opener)
-			req = urllib.request.Request(mirror)
-			req.add_header('Range', f'bytes={irange}')
-
-			dataDict[idx] = urllib.request.urlopen(req).read()
-
-			# print("urlopen :")
-			# print(type(dataDict[idx]))
-			# print("")
+			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread no: {idx}') as t:
+						urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=t.update_to,data=None)
 		except error.URLError:
-			 return print(f"\nInvalid ip or timeout for {proxy_ip}")
+			 return print(f"\nThread no: {idx}. Invalid ip or timeout for {proxy_ip}")
 		except ConnectionResetError:
-			return print(f"\nCould not connect to {proxy_ip}")
+			return print(f"\nThread no: {idx}. Could not connect to {proxy_ip}")
 		except IndexError:
-			return print(f'\nYou must provide a testing IP:PORT proxy in the cmd line')
+			return print(f'\nThread no: {idx}. You must provide a testing IP:PORT proxy in the cmd line')
 		except socket.timeout:
-			return print(f"\nInvalid ip or timeout for {proxy_ip}")
+			return print(f"\nThread no: {idx}. Invalid ip or timeout for {proxy_ip}")
 		except KeyboardInterrupt:
-			print("\n\nExited by User.")
+			print("\nThread no: {idx}. Exited by User.")
 
 	downloaders = [
 		threading.Thread(
 			target=downloadChunk,
-			args=(idx, irange),
+			args=(idx,null),
 		)
-		for idx,irange in enumerate(ranges)
+		for idx,null in enumerate(range(3))
 		]
 
 	for th in downloaders:
@@ -75,18 +90,26 @@ def speedTest(ip):
 	for th in downloaders:
 		th.join()
 
+	timeEnd = datetime.now()
+	filesize = 0
+	for i in range(3):
+		try:
+			filesize = filesize + os.path.getsize(f'{filename}{i}')
+		except FileNotFoundError:
+			continue
 
-	if os.path.exists(filename):
-		os.remove(filename)
+	filesizeM = round(filesize / pow(1024, 2), 2)
+	delta = round(float((timeEnd - timeStart).seconds) + float(str('0.' + str((timeEnd - timeStart).microseconds))), 3)
+	speed = round(filesize / 1024) / delta
 
-	with open(filename, 'wb') as fh:
-		for _idx,chunk in sorted(dataDict.items()):
-			fh.write(chunk)
 
-	delta = time.time() - start
-	filesize = os.path.getsize(filename)
-	ratio = filesize/(delta*1024)
-	return f"Proxy {proxy_ip} has download speed:{math.floor(ratio)} KB/s"
+	for i in range(3):
+		if os.path.exists(f'{filename}{i}'):
+			os.remove(f'{filename}{i}')
+
+	unsort.append({'ip':f'PROXY: {proxy_ip}  \t\tSIZE: {filesizeM}MB \tTIME: {sec_to_mins(delta)}\t','speed':int(speed)})
+	return 'Done'
+
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -115,6 +138,16 @@ def whichProtocol(question, default="http"):
 unsort = []
 sort = []
 proxyslist = []
+banner = """
+                             _____                     _ _______        _
+                            / ____|                   | |__   __|      | |
+  _ __  _ __ _____  ___   _| (___  _ __   ___  ___  __| |  | | ___  ___| |_
+ | '_ \| '__/ _ \ \/ / | | |\___ \| '_ \ / _ \/ _ \/ _` |  | |/ _ \/ __| __|
+ | |_) | | | (_) >  <| |_| |____) | |_) |  __/  __/ (_| |  | |  __/\__ \ |_
+ | .__/|_|  \___/_/\_\\__,  |_____/| .__/ \___|\___|\__,_|  |_|\___||___/\__|
+ | |                   __/ |      | |
+ |_|                  |___/       |_|                       -dev-by-Alpha4d-
+"""
 
 open('proxys.txt', 'a+').close()
 handle = open('proxys.txt')
@@ -124,16 +157,16 @@ for line in handle:
 handle.close()
 
 if not len(proxyslist) == 0:
+	print(banner)
 	protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
 	clear()
-	for i in tqdm(proxyslist):
-		p = speedTest(i)
+	print(banner)
+	for i in trange(len(proxyslist),unit='A', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Completed'):
+		p = speedTest(proxyslist[i])
 		clear()
-		print(p)
+		print(banner)
+		# print(p)
 		if not (p[0] == 'C' or p[0] == 'I' or p[0] == 'Y'):
-			ip , kb = p.split('d:')
-			kb1 , kb = kb.split(' KB/s')
-			unsort.append({'ip':ip+'d','speed':int(kb1)})
 			sort = sorted(
 			    unsort,
 			    key=lambda x: x['speed'], reverse=True)
@@ -144,6 +177,6 @@ if not len(proxyslist) == 0:
 			print(p['ip']+'\t'+str(p['speed'])+' KB/s')
 			if count == 10:
 				break
-		print("\nChecking ...")
+		print("\n")
 else:
 	print("Import some proxys(IP:prot) in proxys.txt file.")
