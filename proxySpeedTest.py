@@ -39,7 +39,7 @@ def speedTest(ip):
 	#mirror = "http://drive.google.com/uc?id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&authuser=0&export=download"
 	mirror = 'http://speedtest.tele2.net/1MB.zip'
 	global protocol
-	socket.setdefaulttimeout(15)
+	socket.setdefaulttimeout(5)
 	filename = '1MB.zip'
 
 	for i in range(3):
@@ -66,6 +66,7 @@ def speedTest(ip):
 			urllib.request.install_opener(opener)
 			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread {idx}') as t:
 						urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=t.update_to,data=None)
+						urllib.request.urlcleanup()
 		except error.URLError:
 			 return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
 		except ConnectionResetError:
