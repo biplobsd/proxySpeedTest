@@ -36,7 +36,6 @@ def sec_to_mins(seconds):
 
 
 def speedTest(ip):
-	#mirror = "http://drive.google.com/uc?id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&authuser=0&export=download"
 	mirror = 'http://speedtest.tele2.net/1MB.zip'
 	global protocol
 	socket.setdefaulttimeout(5)
