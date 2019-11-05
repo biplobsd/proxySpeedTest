@@ -36,10 +36,11 @@ def sec_to_mins(seconds):
 
 
 def speedTest(ip):
-	mirror = 'http://speedtest.tele2.net/1MB.zip'
+	#mirror = 'http://speedtest.tele2.net/1MB.zip'
+	mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
 	global protocol
 	socket.setdefaulttimeout(5)
-	filename = '1MB.zip'
+	filename = 'test.zip'
 
 	for i in range(3):
 		if os.path.exists(f'{filename}{i}'):
@@ -50,6 +51,7 @@ def speedTest(ip):
 	print(f"\n\n\nProxy: {proxy_ip} | Downloading ...")
 	def downloadChunk(idx,_):
 		try:
+			urllib.request.urlcleanup()
 			if protocol == 'http':
 				proxy_handler = urllib.request.ProxyHandler({'http': proxy_ip,})
 			if protocol == 'https':
@@ -65,7 +67,6 @@ def speedTest(ip):
 			urllib.request.install_opener(opener)
 			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread {idx}') as t:
 						urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=t.update_to,data=None)
-						urllib.request.urlcleanup()
 		except error.URLError:
 			 return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
 		except ConnectionResetError:
@@ -189,7 +190,6 @@ if not len(proxyslist) == 0:
 		p = speedTest(proxyslist[i])
 		clear()
 		print(banner)
-		# print(p)
 		if not (p[0] == 'C' or p[0] == 'I' or p[0] == 'Y'):
 			sort = sorted(
 			    unsort,
