@@ -1,5 +1,5 @@
 #Contact me http://t.me/biplob_sd
-import sys, threading, socket, os, time
+import sys, threading, socket, os, time, re
 from datetime import datetime
 from collections import OrderedDict
 from urllib import error
@@ -48,7 +48,7 @@ def speedTest(ip):
 	timeStart = datetime.now()
 	proxy_ip = ip.strip()
 	print(f"\n\n\nProxy: {proxy_ip} | Downloading ...")
-	def downloadChunk(idx,null):
+	def downloadChunk(idx,_):
 		try:
 			if protocol == 'http':
 				proxy_handler = urllib.request.ProxyHandler({'http': proxy_ip,})
@@ -80,9 +80,9 @@ def speedTest(ip):
 	downloaders = [
 		threading.Thread(
 			target=downloadChunk,
-			args=(idx,null),
+			args=(idx,_),
 		)
-		for idx,null in enumerate(range(3))
+		for idx,_ in enumerate(range(3))
 		]
 
 	for th in downloaders:
@@ -114,6 +114,35 @@ def speedTest(ip):
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def inputdata(filename, arrayname=[]):
+	with open(filename, 'r+') as handle:
+		htmlRO = handle.read()
+
+	x = re.findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}[\s:][0-9]{1,5}",htmlRO)
+	for line in range(len(x)):
+		x[line] = re.sub('[\s]',':', x[line])
+
+	with open('proxys.txt', 'w+') as p:
+		for line in x:
+			p.write(line+'\n')
+	return x
+
+def saveOutput(data):
+	global protocol
+	global filelogs
+	if len(data) == 1:
+		try:
+			os.mkdir('outputs')
+		except FileExistsError:
+			pass
+		filelogs = f"outputs/{time.strftime('%Y%m%d_%H_%M_%S')}.txt"
+	with open(filelogs, 'w+') as w:
+		w.write(f"{time.strftime('%X %x %Z')} | Mode {protocol} \n")
+		for line in data:
+			w.write(line['ip']+'\t'+str(line['speed'])+' KB/s\n')
+
+
+
 def whichProtocol(question, default="http"):
 	valid = {"1": 'http', "2": 'https', "3": 'sock4',
  		"4": 'sock5', 'http': 'http'}
@@ -138,7 +167,7 @@ def whichProtocol(question, default="http"):
 unsort = []
 sort = []
 filelogs = ""
-proxyslist = []
+proxyslist = inputdata('proxys.txt')
 banner = """
                              _____                     _ _______        _
                             / ____|                   | |__   __|      | |
@@ -150,30 +179,9 @@ banner = """
  |_|                  |___/       |_|                       -dev-by-Alpha4d-
 """
 
-open('proxys.txt', 'a+').close()
-handle = open('proxys.txt')
-for line in handle:
-	if not len(line.strip()) == 0 :
-		proxyslist.append(line)
-handle.close()
-
-def saveOutput(data):
-	global protocol
-	global filelogs
-	if len(data) == 1:
-		try:
-			os.mkdir('outputs')
-		except FileExistsError:
-			pass
-		filelogs = f"outputs/{time.strftime('%Y%m%d_%H_%M_%S')}.txt"
-	with open(filelogs, 'w+') as w:
-		w.write(f"{time.strftime('%X %x %Z')} | Mode {protocol} \n")
-		for line in data:
-			w.write(line['ip']+'\t'+str(line['speed'])+' KB/s\n')
-	w.close()
-
 if not len(proxyslist) == 0:
 	print(banner)
+	print(f'{len(proxyslist)} proxy ip:port found!')
 	protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
 	clear()
 	print(banner)
