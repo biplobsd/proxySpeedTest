@@ -116,7 +116,7 @@ def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def inputdata(filename, arrayname=[]):
-	open('proxys.txt', 'w+').close()
+	open('proxys.txt', 'a+').close()
 	with open(filename, 'r+') as handle:
 		htmlRO = handle.read()
 
