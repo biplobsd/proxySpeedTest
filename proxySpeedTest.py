@@ -48,7 +48,7 @@ def speedTest(ip):
 
 	timeStart = datetime.now()
 	proxy_ip = ip.strip()
-	print(f"\n\n\nProxy: {proxy_ip} | Downloading ...")
+	print(f"\n\n\nSERVER: {proxy_ip} | Downloading ...")
 	def downloadChunk(idx,_):
 		try:
 			urllib.request.urlcleanup()
@@ -108,7 +108,7 @@ def speedTest(ip):
 		if os.path.exists(f'{filename}{i}'):
 			os.remove(f'{filename}{i}')
 
-	unsort.append({'ip':f'PROXY: {proxy_ip}  \t\tSIZE: {filesizeM}MB \tTIME: {sec_to_mins(delta)}\t','speed':int(speed)})
+	unsort.append({'ip':f'SERVER: {proxy_ip}  \t\tSIZE: {filesizeM}MB \tTIME: {sec_to_mins(delta)}\t','speed':int(speed)})
 	return 'Done'
 
 
@@ -138,7 +138,7 @@ def saveOutput(data):
 			pass
 		filelogs = f"outputs/{time.strftime('%Y%m%d_%H_%M_%S')}.txt"
 	with open(filelogs, 'w+') as w:
-		w.write(f"{time.strftime('%X %x %Z')} | Mode {protocol} \n")
+		w.write(f"{time.strftime('%X %x %Z')} | Protocol {protocol} \n")
 		for line in data:
 			w.write(line['ip']+'\t'+str(line['speed'])+' KB/s\n')
 
@@ -195,7 +195,7 @@ if not len(proxyslist) == 0:
 			    unsort,
 			    key=lambda x: x['speed'], reverse=True)
 		saveOutput(sort)
-		print(f"\nSort as Speed: (Top 10) | Mode : {protocol}")
+		print(f"\nSort as Speed: (Top 10) | Protocol : {protocol}")
 		count = 0
 		for p in sort:
 			count += 1
