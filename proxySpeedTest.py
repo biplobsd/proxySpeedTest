@@ -1,38 +1,25 @@
 #Contact me http://t.me/biplob_sd
-import sys, threading, socket, os, time, re
+import sys, urllib, threading, socket, os, time, re, shutil, sockshandler, socks
 from datetime import datetime
 from collections import OrderedDict
-from urllib import error
-import urllib.request
 from tqdm import tqdm, trange
-import socks
-import sockshandler
+from pathlib import Path
 
-
-def my_hook(t):
-    last_b = [0]
-
-    def update_to(b=1, bsize=1, tsize=None):
-        if tsize not in (None, -1):
-            t.total = tsize
-        t.update((b - last_b[0]) * bsize)
-        last_b[0] = b
-
-    return update_to
-
-
-class TqdmUpTo(tqdm):
-
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
 
 def sec_to_mins(seconds):
 	a=str(round((seconds%3600)//60))
 	b=str(round((seconds%3600)%60))
 	d="{} m {} s".format(a, b)
 	return d
+
+class DLProgress(tqdm):
+	last_block = 0
+
+	def hook(self, block_num=1, block_size=1, total_size=None):
+		self.total = total_size
+		self.update((block_num - self.last_block) * block_size)
+		self.last_block = block_num
+
 
 
 def speedTest(ip):
@@ -49,6 +36,7 @@ def speedTest(ip):
 	timeStart = datetime.now()
 	proxy_ip = ip.strip()
 	print(f"\n\n\nSERVER: {proxy_ip} | Downloading ...")
+
 	def downloadChunk(idx,_):
 		try:
 			urllib.request.urlcleanup()
@@ -62,22 +50,27 @@ def speedTest(ip):
 			elif protocol == 'sock5':
 				ip,port = proxy_ip.split(':')
 				proxy_handler = sockshandler.SocksiPyHandler(socks.SOCKS5, ip, int(port))
-
 			opener = urllib.request.build_opener(proxy_handler)
 			urllib.request.install_opener(opener)
-			with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread {idx}') as t:
-						urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=t.update_to,data=None)
-		except error.URLError:
-			 return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+			Sbar = "{desc}: {percentage:3.0f}%|{bar}|{n_fmt}/{total_fmt} {rate_fmt}{postfix}"
+			with DLProgress(bar_format=Sbar,unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Thread {idx}', position=idx, leave=False) as pbar:
+				urllib.request.urlretrieve(mirror, filename=f'{filename}{idx}', reporthook=pbar.hook,data=None)
+			return True
+		except urllib.error.URLError:
+			print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}", flush=True)
+			return False
 		except ConnectionResetError:
-			return print(f"\nThread {idx}. Could not connect to {proxy_ip}")
+			print(f"Thread {idx}. Could not connect to {proxy_ip}",flush=True)
+			return False
 		except IndexError:
-			return print(f'\nThread {idx}. You must provide a testing IP:PORT proxy in the cmd line')
+			print(f'Thread {idx}. You must provide a testing IP:PORT proxy in the cmd line', flush=True)
+			return False
 		except socket.timeout:
-			return print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+			print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}", flush=True)
+			return False
 		except KeyboardInterrupt:
-			print("\nThread no: {idx}. Exited by User.")
-
+			print(f"Thread no: {idx}. Exited by User.", flush=True)
+			exit()
 	downloaders = [
 		threading.Thread(
 			target=downloadChunk,
@@ -115,8 +108,20 @@ def speedTest(ip):
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def cleanupOutputs():
+	if int(time.strftime('%d'))%3 == 0:
+		if os.path.exists('outputs'):
+			if sum(f.stat().st_size for f in Path('outputs').glob('**/*') if f.is_file()) >= 2000000:
+				try:
+					shutil.rmtree('outputs')
+				except OSError as e:
+					print(f"Error: {e.filename} - {e.strerror}")
+
+
 def inputdata(filename, arrayname=[]):
-	open('proxys.txt', 'a+').close()
+	if not os.path.exists('proxys.txt'):
+		open('proxys.txt', 'a+').close()
+
 	with open(filename, 'r+') as handle:
 		htmlRO = handle.read()
 
@@ -181,17 +186,19 @@ banner = """
  |_|                  |___/       |_|                       -dev-by-Alpha4d-
 """
 
+
 if not len(proxyslist) == 0:
+	cleanupOutputs()
 	print(banner)
 	print(f'{len(proxyslist)} proxy ip:port found!')
 	protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
 	clear()
 	print(banner)
-	for i in trange(len(proxyslist),unit='A', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Completed'):
+	for i in trange(len(proxyslist),unit='A', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Completed', position=0, leave=True):
 		p = speedTest(proxyslist[i])
 		clear()
 		print(banner)
-		if not (p[0] == 'C' or p[0] == 'I' or p[0] == 'Y'):
+		if p:
 			sort = sorted(
 			    unsort,
 			    key=lambda x: x['speed'], reverse=True)
