@@ -1,10 +1,54 @@
 #Contact me http://t.me/biplob_sd
-import sys, urllib, threading, socket, os, time, re, shutil, sockshandler, socks
+import sys, urllib, threading, socket, os, time, re, shutil, sockshandler, socks, argparse
 from datetime import datetime
 from collections import OrderedDict
 from tqdm import tqdm, trange
 from pathlib import Path
 
+def process_cli():
+    parser = argparse.ArgumentParser(
+        description="""THIS'S SIMPLE SCRIPT ONLY TEST PROXY DOWNLOADING SPEED. 
+	GET PROXY FROM WEBSITE.""",
+        usage='%(prog)s [-h][-v][-nb] -u URL [-f FILE]',
+        epilog="(c) ALPHA4D (Biplob SD) 2019, e-mail: biplobsd11@gmail.com",
+        add_help=False
+    )
+    parent_group = parser.add_argument_group(
+        title="Options"
+    )
+    parent_group.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="Help"
+    )
+    parent_group.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        help="Display the version number",
+        version="%(prog)s version: 1.0.0"
+    )
+    parent_group.add_argument(
+        "-u",
+        "--url",
+        help="URL of the mirror. Add custom mirror (default is GoogleFiber)",
+        metavar="URL"
+    )
+    parent_group.add_argument(
+        "-f",
+        "--file",
+        help="Proxy list file. (default is proxys.txt)",
+        metavar="FILE"
+    )
+    parent_group.add_argument(
+        "-nb",
+        "--no-banner",
+        action="store_true",
+        default=False,
+        help="Do not print banner (default is False)"
+    )
+    return parser
 
 def sec_to_mins(seconds):
 	a=str(round((seconds%3600)//60))
@@ -23,8 +67,12 @@ class DLProgress(tqdm):
 
 
 def speedTest(ip):
-	#mirror = 'http://speedtest.tele2.net/1MB.zip'
-	mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
+	global NAMESPACE
+	if NAMESPACE.url is None:
+		#mirror = 'http://speedtest.tele2.net/1MB.zip'
+		mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
+	else:
+		mirror = NAMESPACE.url
 	global protocol
 	socket.setdefaulttimeout(5)
 	filename = 'test.zip'
@@ -125,7 +173,7 @@ def inputdata(filename, arrayname=[]):
 	with open(filename, 'r+') as handle:
 		htmlRO = handle.read()
 
-	x = re.findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}[\s:][0-9]{1,5}",htmlRO)
+	x = re.findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}[\s:\t][0-9]{1,5}",htmlRO)
 	for line in range(len(x)):
 		x[line] = re.sub('[\s]',':', x[line])
 
@@ -171,10 +219,16 @@ def whichProtocol(question, default="http"):
 			clear()
 			sys.stdout.write("\n\nError : Please respond with Number[1/2/3/4] \n")
 
+parser = process_cli()
+NAMESPACE = parser.parse_args(sys.argv[1:])
 unsort = []
 sort = []
 filelogs = ""
-proxyslist = inputdata('proxys.txt')
+if NAMESPACE.file is None:
+	proxyslist = inputdata('proxys.txt')
+else:
+	proxyslist = inputdata(NAMESPACE.file)
+
 banner = """
                              _____                     _ _______        _
                             / ____|                   | |__   __|      | |
@@ -185,6 +239,10 @@ banner = """
  | |                   __/ |      | |
  |_|                  |___/       |_|                       -dev-by-Alpha4d-
 """
+
+if NAMESPACE.no_banner:
+	banner = ""
+	
 
 
 if not len(proxyslist) == 0:
