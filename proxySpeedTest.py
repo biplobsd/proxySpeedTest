@@ -75,7 +75,6 @@ class TqdmUpTo(tqdm):
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)
-        print("__", flash=True)
 
 
 def downloadChunk(idx, proxy_ip, filename, mirror):
