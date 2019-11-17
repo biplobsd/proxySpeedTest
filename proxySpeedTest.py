@@ -9,7 +9,7 @@ import argparse
 import sys
 from threading import Thread
 from sockshandler import SocksiPyHandler
-from urllib import request, error
+from urllib import request, error, parse
 from datetime import datetime
 from tqdm import tqdm, trange
 from pathlib import Path
@@ -17,7 +17,7 @@ from pathlib import Path
 
 def process_cli():
     parser = argparse.ArgumentParser(
-        description="""THIS'S SIMPLE SCRIPT ONLY TEST PROXY DOWNLOADING SPEED.
+        description="""THIS'S SIMPLE SCRIPT ONLY TEST PROXY SERVER DOWNLOADING SPEED.
         GET PROXY FROM WEBSITE.""",
         usage='%(prog)s [-h][-v][-nb] -u URL [-f FILE]',
         epilog="(c) ALPHA4D (Biplob SD) 2019, e-mail: biplobsd11@gmail.com",
@@ -129,7 +129,6 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
 
 
 def speedTest(ip):
-    global NAMESPACE
     global mirror
     global protocol
     socket.setdefaulttimeout(5)
@@ -216,6 +215,8 @@ def inputdata(filename, arrayname=[]):
 def saveOutput(data):
     global protocol
     global filelogs
+    global netloc
+    global proxyslistname
     if len(data) == 1:
         try:
             os.mkdir('outputs')
@@ -223,7 +224,10 @@ def saveOutput(data):
             pass
         filelogs = f"outputs/{time.strftime('%Y%m%d_%H_%M_%S')}.txt"
     with open(filelogs, 'w+') as w:
-        w.write(f"{time.strftime('%X %x %Z')} | Protocol {protocol} \n")
+        w.write(
+            f"{time.strftime('%X %x %Z')} | Protocol {protocol} " +
+            f"| Mirror: {netloc} | Filename: {proxyslistname} \n"
+        )
         for line in data:
             w.write(line['ip']+'\t'+str(line['speed'])+' KB/s\n')
 
@@ -255,15 +259,17 @@ NAMESPACE = parser.parse_args(sys.argv[1:])
 unsort = []
 sort = []
 filelogs = ""
-if NAMESPACE.file is None:
-    proxyslist = inputdata('proxys.txt')
-else:
-    proxyslist = inputdata(NAMESPACE.file)
-if not NAMESPACE.url:
+proxyslistname = 'proxys.txt'
+if NAMESPACE.file:
+    proxyslistname = NAMESPACE.file
+proxyslist = inputdata(proxyslistname)
+
+if NAMESPACE.url is None:
     # mirror = 'http://speedtest.tele2.net/1MB.zip'
     mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
 else:
     mirror = NAMESPACE.url
+netloc = parse.urlparse(mirror).netloc
 banner = r"""
                              _____                     _ _______        _
                             / ____|                   | |__   __|      | |
@@ -305,7 +311,10 @@ if not len(proxyslist) == 0:
                 unsort,
                 key=lambda x: x['speed'], reverse=True)
         saveOutput(sort)
-        print(f"\nSort as Speed: (Top 10) | Protocol : {protocol}")
+        print(
+            f"\nSort as Speed: (Top 10) | Protocol: {protocol} " +
+            f"| Mirror: {netloc} | Filename: {proxyslistname}"
+        )
         count = 0
         for p in sort:
             count += 1
