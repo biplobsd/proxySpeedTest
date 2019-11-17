@@ -6,10 +6,10 @@ import re
 import shutil
 import socks
 import argparse
+import sys
 from threading import Thread
 from sockshandler import SocksiPyHandler
 from urllib import request, error
-import sys
 from datetime import datetime
 from tqdm import tqdm, trange
 from pathlib import Path
@@ -78,7 +78,7 @@ class TqdmUpTo(tqdm):
 
 
 def downloadChunk(idx, proxy_ip, filename, mirror):
-    Sbar = "{desc}: {percentage:3.0f}%|{bar}|{n_fmt}/{total_fmt} {rate_fmt}{postfix}"
+    global sbar
     try:
         if protocol == 'http':
             proxy_handler = request.ProxyHandler({'http': proxy_ip, })
@@ -92,35 +92,45 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
             proxy_handler = SocksiPyHandler(socks.SOCKS5, ip, int(port))
         opener = request.build_opener(proxy_handler)
         request.install_opener(opener)
-        with TqdmUpTo(bar_format=Sbar, unit='B', unit_scale=True, unit_divisor=1024, miniters=1, position=idx, desc=f'Thread {idx}', leave=False) as pbar:
+        with TqdmUpTo(
+            dynamic_ncols=True,
+            bar_format=Sbar,
+            unit='B',
+            unit_scale=True,
+            unit_divisor=1024,
+            miniters=1,
+            position=idx,
+            desc=f'Thread {idx}',
+            leave=False
+        ) as pbar:
             request.urlretrieve(
-                mirror, filename=f'{filename}{idx}', reporthook=pbar.update_to, data=None)
+                mirror,
+                filename=f'{filename}{idx}',
+                reporthook=pbar.update_to,
+                data=None
+            )
             request.urlcleanup()
             return True
     except error.URLError:
-        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+        print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}")
         return False
     except ConnectionResetError:
-        print(f"\nThread {idx}. Could not connect to {proxy_ip}")
+        print(f"Thread {idx}. Could not connect to {proxy_ip}")
         return False
     except IndexError:
-        print(f'\nThread {idx}. You must provide a testing IP:PORT proxy')
+        print(f'Thread {idx}. You must provide a testing IP:PORT proxy')
         return False
     except socket.timeout:
-        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+        print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}")
         return False
     except KeyboardInterrupt:
-        print(f"\nThread no: {idx}. Exited by User.")
+        print(f"Thread no: {idx}. Exited by User.")
         exit()
 
 
 def speedTest(ip):
     global NAMESPACE
-    if NAMESPACE.url is None:
-        # mirror = 'http://speedtest.tele2.net/1MB.zip'
-        mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
-    else:
-        mirror = NAMESPACE.url
+    global mirror
     global protocol
     socket.setdefaulttimeout(5)
     filename = 'test.zip'
@@ -142,7 +152,6 @@ def speedTest(ip):
         th.start()
     for th in downloaders:
         th.join()
-
     timeEnd = datetime.now()
     filesize = 0
     for i in range(3):
@@ -153,7 +162,8 @@ def speedTest(ip):
 
     filesizeM = round(filesize / pow(1024, 2), 2)
     delta = round(float((timeEnd - timeStart).seconds) +
-                  float(str('0.' + str((timeEnd - timeStart).microseconds))), 3)
+                  float(str('0.' + str((timeEnd -
+                                        timeStart).microseconds))), 3)
     speed = round(filesize / 1024) / delta
 
     for i in range(3):
@@ -161,7 +171,10 @@ def speedTest(ip):
             os.remove(f'{filename}{i}')
 
     unsort.append(
-        {'ip': f'SERVER: {proxy_ip}  \t\tSIZE: {filesizeM}MB \tTIME: {sec_to_mins(delta)}\t', 'speed': int(speed)})
+        {'ip': f'SERVER: {proxy_ip} ' +
+         f'\t\tSIZE: {filesizeM}MB \tTIME: {sec_to_mins(delta)}\t',
+         'speed': int(speed)}
+    )
     return 'Done'
 
 
@@ -172,7 +185,11 @@ def clear():
 def cleanupOutputs():
     if int(time.strftime('%d')) % 3 == 0:
         if os.path.exists('outputs'):
-            if sum(f.stat().st_size for f in Path('outputs').glob('**/*') if f.is_file()) >= 2000000:
+            folderElementSize = []
+            for f in Path('outputs').glob('**/*'):
+                if f.is_file():
+                    folderElementSize.append(f.stat().st_size)
+            if sum(folderElementSize) >= 2000000:
                 try:
                     shutil.rmtree('outputs')
                 except OSError as e:
@@ -188,7 +205,7 @@ def inputdata(filename, arrayname=[]):
 
     x = re.findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}[\s:\t][0-9]{1,5}", htmlRO)
     for line in range(len(x)):
-        x[line] = re.sub('[\s]', ':', x[line])
+        x[line] = re.sub(r'[\s]', ':', x[line])
 
     with open('proxys.txt', 'w+') as p:
         for line in x:
@@ -242,8 +259,12 @@ if NAMESPACE.file is None:
     proxyslist = inputdata('proxys.txt')
 else:
     proxyslist = inputdata(NAMESPACE.file)
-
-banner = """
+if not NAMESPACE.url:
+    # mirror = 'http://speedtest.tele2.net/1MB.zip'
+    mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
+else:
+    mirror = NAMESPACE.url
+banner = r"""
                              _____                     _ _______        _
                             / ____|                   | |__   __|      | |
   _ __  _ __ _____  ___   _| (___  _ __   ___  ___  __| |  | | ___  ___| |_
@@ -256,7 +277,8 @@ banner = """
 
 if NAMESPACE.no_banner:
     banner = ""
-
+Sbar = "{desc}: {percentage:3.0f}%|{bar}|" \
+    "{n_fmt}/{total_fmt} {rate_fmt}{postfix}"
 
 if not len(proxyslist) == 0:
     cleanupOutputs()
@@ -265,7 +287,16 @@ if not len(proxyslist) == 0:
     protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
     clear()
     print(banner)
-    for i in trange(len(proxyslist), unit='A', unit_scale=True, unit_divisor=1024, miniters=1, desc=f'Completed', position=0, leave=True):
+    for i in trange(
+        len(proxyslist),
+        unit='A',
+        unit_scale=True,
+        unit_divisor=1024,
+        miniters=1,
+        desc=f'Completed',
+        position=0,
+        leave=True
+    ):
         p = speedTest(proxyslist[i])
         clear()
         print(banner)
