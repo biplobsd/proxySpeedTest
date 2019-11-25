@@ -1,14 +1,13 @@
 # Contact me http://t.me/biplob_sd
-import socket
 import os
 import time
 import re
 import shutil
 import socks
+import socket
 import argparse
 import sys
 from threading import Thread
-from sockshandler import SocksiPyHandler
 from urllib import request, error, parse
 from datetime import datetime
 from tqdm import tqdm, trange
@@ -82,16 +81,20 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
     try:
         if protocol == 'http':
             proxy_handler = request.ProxyHandler({'http': proxy_ip, })
+            opener = request.build_opener(proxy_handler)
+            request.install_opener(opener)
         if protocol == 'https':
             proxy_handler = request.ProxyHandler({'https': proxy_ip, })
+            opener = request.build_opener(proxy_handler)
+            request.install_opener(opener)
         elif protocol == 'sock4':
             ip, port = proxy_ip.split(':')
-            proxy_handler = SocksiPyHandler(socks.SOCKS4, ip, int(port))
+            socks.set_default_proxy(socks.SOCKS4, ip, int(port))
+            socket.socket = socks.socksocket
         elif protocol == 'sock5':
             ip, port = proxy_ip.split(':')
-            proxy_handler = SocksiPyHandler(socks.SOCKS5, ip, int(port))
-        opener = request.build_opener(proxy_handler)
-        request.install_opener(opener)
+            socks.set_default_proxy(socks.SOCKS5, ip, int(port))
+            socket.socket = socks.socksocket
         with TqdmUpTo(
             dynamic_ncols=True,
             bar_format=Sbar,
@@ -112,19 +115,19 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
             request.urlcleanup()
             return True
     except error.URLError:
-        print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}")
+        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
         return False
     except ConnectionResetError:
-        print(f"Thread {idx}. Could not connect to {proxy_ip}")
+        print(f"\nThread {idx}. Could not connect to {proxy_ip}")
         return False
     except IndexError:
-        print(f'Thread {idx}. You must provide a testing IP:PORT proxy')
+        print(f'\nThread {idx}. You must provide a testing IP:PORT proxy')
         return False
     except socket.timeout:
-        print(f"Thread {idx}. Invalid ip or timeout for {proxy_ip}")
+        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
         return False
     except KeyboardInterrupt:
-        print(f"Thread no: {idx}. Exited by User.")
+        print(f"\nThread no: {idx}. Exited by User.")
         exit()
 
 
