@@ -1,8 +1,7 @@
 env
-test.zip
-test.zip0
-test.zip1
-test.zip2
+test0
+test1
+test2
 proxys.txt
 \outputs
 testcode.py

@@ -1,17 +1,16 @@
 # Contact me http://t.me/biplob_sd
 import os
-import time
 import re
-import shutil
-import socks
-import socket
-import argparse
 import sys
+import time
+import shutil
+import argparse
+import requests
+from pathlib import Path
+from urllib import parse
 from threading import Thread
-from urllib import request, error, parse
 from datetime import datetime
 from tqdm import tqdm, trange
-from pathlib import Path
 
 
 def process_cli():
@@ -36,7 +35,7 @@ def process_cli():
         "--version",
         action="version",
         help="Display the version number",
-        version="%(prog)s version: 1.0.0"
+        version="%(prog)s version: 1.1.0"
     )
     parent_group.add_argument(
         "-u",
@@ -67,35 +66,33 @@ def sec_to_mins(seconds):
     return d
 
 
-class TqdmUpTo(tqdm):
-
-    def update_to(self, b=1, bsize=1, tsize=None):
-
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-
 def downloadChunk(idx, proxy_ip, filename, mirror):
-    global sbar
+    global file_size
     try:
         if protocol == 'http':
-            proxy_handler = request.ProxyHandler({'http': proxy_ip, })
-            opener = request.build_opener(proxy_handler)
-            request.install_opener(opener)
-        if protocol == 'https':
-            proxy_handler = request.ProxyHandler({'https': proxy_ip, })
-            opener = request.build_opener(proxy_handler)
-            request.install_opener(opener)
+            proxies = {
+                'http': f'http://{proxy_ip}',
+                'https': f'http://{proxy_ip}'
+            }
+        elif protocol == 'https':
+            proxies = {
+                'http': f'https://{proxy_ip}',
+                'https': f'https://{proxy_ip}'
+            }
         elif protocol == 'sock4':
-            ip, port = proxy_ip.split(':')
-            socks.set_default_proxy(socks.SOCKS4, ip, int(port))
-            socket.socket = socks.socksocket
+            proxies = {
+                'http': f'socks4://{proxy_ip}',
+                'https': f'socks4://{proxy_ip}'
+            }
         elif protocol == 'sock5':
-            ip, port = proxy_ip.split(':')
-            socks.set_default_proxy(socks.SOCKS5, ip, int(port))
-            socket.socket = socks.socksocket
-        with TqdmUpTo(
+            proxies = {
+                'http': f'socks5://{proxy_ip}',
+                'https': f'socks5://{proxy_ip}'
+            }
+        header = {"Range": "bytes=%s-%s" % (0, file_size)}
+        pbar = tqdm(
+            total=file_size,
+            initial=0,
             dynamic_ncols=True,
             bar_format=Sbar,
             unit='B',
@@ -105,26 +102,38 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
             position=idx,
             desc=f'Thread {idx}',
             leave=False
-        ) as pbar:
-            request.urlretrieve(
-                mirror,
-                filename=f'{filename}{idx}',
-                reporthook=pbar.update_to,
-                data=None
-            )
-            request.urlcleanup()
-            return True
-    except error.URLError:
-        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+        )
+        req = requests.get(
+            mirror,
+            headers=header,
+            stream=True,
+            proxies=proxies,
+            timeout=5,
+        )
+        with(open(f'{filename}{idx}', 'ab')) as f:
+            for chunk in req.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+                    pbar.update(1024)
+        pbar.close()
+        return True
+    except requests.exceptions.ProxyError:
+        print(f"\nThread {idx}. Could not connect to {proxy_ip}")
         return False
-    except ConnectionResetError:
+    except requests.exceptions.ConnectionError:
         print(f"\nThread {idx}. Could not connect to {proxy_ip}")
         return False
     except IndexError:
         print(f'\nThread {idx}. You must provide a testing IP:PORT proxy')
         return False
-    except socket.timeout:
-        print(f"\nThread {idx}. Invalid ip or timeout for {proxy_ip}")
+    except requests.exceptions.ConnectTimeout:
+        print(f"\nThread {idx}. ConnectTimeou for {proxy_ip}")
+        return False
+    except requests.exceptions.ReadTimeout:
+        print(f"\nThread {idx}. ReadTimeout for {proxy_ip}")
+        return False
+    except RuntimeError:
+        print(f"\nThread {idx}. Set changed size during iteration. {proxy_ip}")
         return False
     except KeyboardInterrupt:
         print(f"\nThread no: {idx}. Exited by User.")
@@ -134,8 +143,7 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
 def speedTest(ip):
     global mirror
     global protocol
-    socket.setdefaulttimeout(5)
-    filename = 'test.zip'
+    filename = 'test'
     for i in range(3):
         if os.path.exists(f'{filename}{i}'):
             os.remove(f'{filename}{i}')
@@ -236,17 +244,16 @@ def saveOutput(data):
 
 
 def whichProtocol(question, default="http"):
-    valid = {"1": 'http', "2": 'https', "3": 'sock4',
+    valid = {"1": 'http', "2": "https", "3": 'sock4',
              "4": 'sock5', 'http': 'http'}
-    if default is None:
-        prompt = "\n\n1. http\n2. https\n3. sock4\n4. sock5 "
-    elif default == 'http':
-        prompt = f" \n\n1. http\n2. https\n3. sock4\n4. sock5"
+
+    if default == 'http':
+        prompt = "\n1. http \n2. https \n3. sock4\n4. sock5 "
     else:
         raise ValueError("\n\ninvalid default answer: '%s'" % default)
 
     while True:
-        sys.stdout.write(prompt + question+f'[default={default}]: ')
+        sys.stdout.write(prompt + question+f'[{default}]: ')
         choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
@@ -254,7 +261,27 @@ def whichProtocol(question, default="http"):
             return valid[choice]
         else:
             clear()
-            print("\n\nError : Please respond with Number[1/2/3/4] \n")
+            print("\n\nError : Please respond with Number[1/2/3/4]")
+
+
+def fileSmirror(protocol):
+    if NAMESPACE.url is None:
+        if protocol != "https":
+            mirror = 'http://provo.speed.googlefiber.net:3004/' \
+                'download?size=1048576'
+            file_size = 1048576
+        else:
+            mirror = 'https://drive.google.com/uc?' \
+                'authuser=0&id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&export=download'
+            file_size = int(
+                requests.get(mirror).headers['content-length']
+            )
+    else:
+        mirror = NAMESPACE.url
+        file_size = int(
+            requests.get(mirror).headers['content-length']
+        )
+    return mirror, file_size
 
 
 parser = process_cli()
@@ -266,13 +293,6 @@ proxyslistname = 'proxys.txt'
 if NAMESPACE.file:
     proxyslistname = NAMESPACE.file
 proxyslist = inputdata(proxyslistname)
-
-if NAMESPACE.url is None:
-    # mirror = 'http://speedtest.tele2.net/1MB.zip'
-    mirror = 'http://provo.speed.googlefiber.net:3004/download?size=1048576'
-else:
-    mirror = NAMESPACE.url
-netloc = parse.urlparse(mirror).netloc
 banner = r"""
                              _____                     _ _______        _
                             / ____|                   | |__   __|      | |
@@ -294,17 +314,18 @@ if not len(proxyslist) == 0:
     print(banner)
     print(f'{len(proxyslist)} proxy ip:port found!')
     protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
+    mirror, file_size = fileSmirror(protocol)
+    netloc = parse.urlparse(mirror).netloc
     clear()
     print(banner)
     for i in trange(
         len(proxyslist),
-        unit='A',
+        unit='B',
         unit_scale=True,
         unit_divisor=1024,
         miniters=1,
-        desc=f'Completed',
+        desc='Completed',
         position=0,
-        leave=True
     ):
         p = speedTest(proxyslist[i])
         clear()
