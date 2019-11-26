@@ -79,17 +79,16 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
                 'http': f'https://{proxy_ip}',
                 'https': f'https://{proxy_ip}'
             }
-        elif protocol == 'sock4':
+        elif protocol == 'socks4':
             proxies = {
                 'http': f'socks4://{proxy_ip}',
                 'https': f'socks4://{proxy_ip}'
             }
-        elif protocol == 'sock5':
+        elif protocol == 'socks5':
             proxies = {
                 'http': f'socks5://{proxy_ip}',
                 'https': f'socks5://{proxy_ip}'
             }
-        header = {"Range": "bytes=%s-%s" % (0, file_size)}
         pbar = tqdm(
             total=file_size,
             initial=0,
@@ -105,10 +104,10 @@ def downloadChunk(idx, proxy_ip, filename, mirror):
         )
         req = requests.get(
             mirror,
-            headers=header,
+            headers={"Range": "bytes=%s-%s" % (0, file_size)},
             stream=True,
             proxies=proxies,
-            timeout=5,
+            timeout=5
         )
         with(open(f'{filename}{idx}', 'ab')) as f:
             for chunk in req.iter_content(chunk_size=1024):
@@ -244,11 +243,11 @@ def saveOutput(data):
 
 
 def whichProtocol(question, default="http"):
-    valid = {"1": 'http', "2": "https", "3": 'sock4',
-             "4": 'sock5', 'http': 'http'}
+    valid = {"1": 'http', "2": "https", "3": 'socks4',
+             "4": 'socks5', 'http': 'http'}
 
     if default == 'http':
-        prompt = "\n1. http \n2. https \n3. sock4\n4. sock5 "
+        prompt = "\n1. http \n2. https \n3. socks4\n4. socks5 "
     else:
         raise ValueError("\n\ninvalid default answer: '%s'" % default)
 
@@ -264,6 +263,19 @@ def whichProtocol(question, default="http"):
             print("\n\nError : Please respond with Number[1/2/3/4]")
 
 
+def filelength(url):
+    try:
+        return int(requests.get(url, stream=True).headers['content-length'])
+    except KeyError:
+        return int(
+            requests.get(
+                url,
+                headers={'Range': 'bytes=0-'},
+                stream=True
+            ).headers['Content-Range'].partition('/')[-1]
+        )
+
+
 def fileSmirror(protocol):
     if NAMESPACE.url is None:
         if protocol != "https":
@@ -273,14 +285,10 @@ def fileSmirror(protocol):
         else:
             mirror = 'https://drive.google.com/uc?' \
                 'authuser=0&id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&export=download'
-            file_size = int(
-                requests.get(mirror).headers['content-length']
-            )
+            file_size = filelength(mirror)
     else:
         mirror = NAMESPACE.url
-        file_size = int(
-            requests.get(mirror).headers['content-length']
-        )
+        file_size = filelength(mirror)
     return mirror, file_size
 
 
@@ -320,7 +328,7 @@ if not len(proxyslist) == 0:
     print(banner)
     for i in trange(
         len(proxyslist),
-        unit='B',
+        unit='A',
         unit_scale=True,
         unit_divisor=1024,
         miniters=1,
@@ -333,7 +341,8 @@ if not len(proxyslist) == 0:
         if p:
             sort = sorted(
                 unsort,
-                key=lambda x: x['speed'], reverse=True)
+                key=lambda x: x['speed'], reverse=True
+            )
         saveOutput(sort)
         print(
             f"\nSort as Speed: (Top 10) | Protocol: {protocol} " +
