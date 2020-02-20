@@ -279,9 +279,17 @@ def filelength(url):
 def fileSmirror(protocol):
     if NAMESPACE.url is None:
         if protocol != "https":
-            mirror = 'http://provo.speed.googlefiber.net:3004/' \
-                'download?size=1048576'
-            file_size = 1048576
+            ps = '\t[1] GoogleFiber' \
+                '\n\t[2] bd.archive.ubuntu.com\n\nSelect Mirror : '
+            choice = int(input(ps))
+            if choice == 1:
+                mirror = 'http://provo.speed.googlefiber.net:3004/' \
+                    'download?size=1048576'
+                file_size = 1048576
+            elif choice == 2:
+                mirror = 'http://bd.archive.ubuntu.com/ubuntu/' \
+                        'indices/override.oneiric.universe'
+                file_size = 1062124
         else:
             mirror = 'https://drive.google.com/uc?' \
                 'authuser=0&id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&export=download'
@@ -322,6 +330,8 @@ if not len(proxyslist) == 0:
     print(banner)
     print(f'{len(proxyslist)} proxy ip:port found!')
     protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
+    clear()
+    print(banner)
     mirror, file_size = fileSmirror(protocol)
     netloc = parse.urlparse(mirror).netloc
     clear()
