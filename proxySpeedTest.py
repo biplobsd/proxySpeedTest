@@ -207,16 +207,16 @@ def cleanupOutputs():
 
 def inputdata(filename, arrayname=[]):
     if not os.path.exists('proxys.txt'):
-        open('proxys.txt', 'a+').close()
+        open('proxys.txt', 'a+', encoding="utf-8").close()
 
-    with open(filename, 'r+') as handle:
+    with open(filename, 'r+', encoding="utf-8") as handle:
         htmlRO = handle.read()
 
     x = re.findall(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}[\s:\t][0-9]{1,5}", htmlRO)
     for line in range(len(x)):
         x[line] = re.sub(r'[\s]', ':', x[line])
 
-    with open('proxys.txt', 'w+') as p:
+    with open('proxys.txt', 'w+', encoding="utf-8") as p:
         for line in x:
             p.write(line+'\n')
     return x
