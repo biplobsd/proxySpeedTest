@@ -293,10 +293,12 @@ def fileSmirror(protocol):
         else:
             mirror = 'https://drive.google.com/uc?' \
                 'authuser=0&id=0B1MVW1mFO2zmSnZKYlNmT3pjbFE&export=download'
-            file_size = filelength(mirror)
+            # file_size = filelength(mirror)
+            file_size = 1048576
     else:
         mirror = NAMESPACE.url
-        file_size = filelength(mirror)
+        # file_size = filelength(mirror)
+        file_size = 1048576
     return mirror, file_size
 
 
