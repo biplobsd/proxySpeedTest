@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Contact me http://t.me/biplob_sd
 import os
 import re
@@ -301,71 +303,71 @@ def fileSmirror(protocol):
         file_size = 1048576
     return mirror, file_size
 
+if __name__=="__main__":
+    parser = process_cli()
+    NAMESPACE = parser.parse_args(sys.argv[1:])
+    unsort = []
+    sort = []
+    filelogs = ""
+    proxyslistname = 'proxys.txt'
+    if NAMESPACE.file:
+        proxyslistname = NAMESPACE.file
+    proxyslist = inputdata(proxyslistname)
+    banner = r"""
+                                _____                     _ _______        _
+                                / ____|                   | |__   __|      | |
+    _ __  _ __ _____  ___   _| (___  _ __   ___  ___  __| |  | | ___  ___| |_
+    | '_ \| '__/ _ \ \/ / | | |\___ \| '_ \ / _ \/ _ \/ _` |  | |/ _ \/ __| __|
+    | |_) | | | (_) >  <| |_| |____) | |_) |  __/  __/ (_| |  | |  __/\__ \ |_
+    | .__/|_|  \___/_/\_\\__,  |_____/| .__/ \___|\___|\__,_|  |_|\___||___/\__|
+    | |                   __/ |      | |
+    |_|                  |___/       |_|                       -dev-by-Alpha4d-
+    """
 
-parser = process_cli()
-NAMESPACE = parser.parse_args(sys.argv[1:])
-unsort = []
-sort = []
-filelogs = ""
-proxyslistname = 'proxys.txt'
-if NAMESPACE.file:
-    proxyslistname = NAMESPACE.file
-proxyslist = inputdata(proxyslistname)
-banner = r"""
-                             _____                     _ _______        _
-                            / ____|                   | |__   __|      | |
-  _ __  _ __ _____  ___   _| (___  _ __   ___  ___  __| |  | | ___  ___| |_
- | '_ \| '__/ _ \ \/ / | | |\___ \| '_ \ / _ \/ _ \/ _` |  | |/ _ \/ __| __|
- | |_) | | | (_) >  <| |_| |____) | |_) |  __/  __/ (_| |  | |  __/\__ \ |_
- | .__/|_|  \___/_/\_\\__,  |_____/| .__/ \___|\___|\__,_|  |_|\___||___/\__|
- | |                   __/ |      | |
- |_|                  |___/       |_|                       -dev-by-Alpha4d-
-"""
+    if NAMESPACE.no_banner:
+        banner = ""
+    Sbar = "{desc}: {percentage:3.0f}%|{bar}|" \
+        "{n_fmt}/{total_fmt} {rate_fmt}{postfix}"
 
-if NAMESPACE.no_banner:
-    banner = ""
-Sbar = "{desc}: {percentage:3.0f}%|{bar}|" \
-    "{n_fmt}/{total_fmt} {rate_fmt}{postfix}"
-
-if not len(proxyslist) == 0:
-    cleanupOutputs()
-    print(banner)
-    print(f'{len(proxyslist)} proxy ip:port found!')
-    protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
-    clear()
-    print(banner)
-    mirror, file_size = fileSmirror(protocol)
-    netloc = parse.urlparse(mirror).netloc
-    clear()
-    print(banner)
-    for i in trange(
-        len(proxyslist),
-        unit='A',
-        unit_scale=True,
-        unit_divisor=1024,
-        miniters=1,
-        desc='Completed',
-        position=0,
-    ):
-        p = speedTest(proxyslist[i])
+    if not len(proxyslist) == 0:
+        cleanupOutputs()
+        print(banner)
+        print(f'{len(proxyslist)} proxy ip:port found!')
+        protocol = whichProtocol("\n\nWhich's protocol do you want use with ")
         clear()
         print(banner)
-        if p:
-            sort = sorted(
-                unsort,
-                key=lambda x: x['speed'], reverse=True
+        mirror, file_size = fileSmirror(protocol)
+        netloc = parse.urlparse(mirror).netloc
+        clear()
+        print(banner)
+        for i in trange(
+            len(proxyslist),
+            unit='A',
+            unit_scale=True,
+            unit_divisor=1024,
+            miniters=1,
+            desc='Completed',
+            position=0,
+        ):
+            p = speedTest(proxyslist[i])
+            clear()
+            print(banner)
+            if p:
+                sort = sorted(
+                    unsort,
+                    key=lambda x: x['speed'], reverse=True
+                )
+            saveOutput(sort)
+            print(
+                f"\nSort as Speed: (Top 10) | Protocol: {protocol} " +
+                f"| Mirror: {netloc} | Filename: {proxyslistname}"
             )
-        saveOutput(sort)
-        print(
-            f"\nSort as Speed: (Top 10) | Protocol: {protocol} " +
-            f"| Mirror: {netloc} | Filename: {proxyslistname}"
-        )
-        count = 0
-        for p in sort:
-            count += 1
-            print(p['ip']+'\t'+str(p['speed'])+' KB/s')
-            if count == 10:
-                break
-        print("\n")
-else:
-    print("Import some proxys(IP:prot) in proxys.txt file.")
+            count = 0
+            for p in sort:
+                count += 1
+                print(p['ip']+'\t'+str(p['speed'])+' KB/s')
+                if count == 10:
+                    break
+            print("\n")
+    else:
+        print("Import some proxys(IP:prot) in proxys.txt file.")
